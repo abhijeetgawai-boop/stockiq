@@ -1,0 +1,699 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
+<title>StockIQ — AI Investment Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Sora:wght@300;400;600;700&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --bg: #0a0e1a;
+    --surface: #111827;
+    --surface2: #1a2235;
+    --border: rgba(255,255,255,0.07);
+    --border2: rgba(255,255,255,0.14);
+    --green: #00e5a0;
+    --green-dim: rgba(0,229,160,0.12);
+    --green-mid: rgba(0,229,160,0.25);
+    --red: #ff4d6d;
+    --red-dim: rgba(255,77,109,0.12);
+    --amber: #ffbe0b;
+    --amber-dim: rgba(255,190,11,0.12);
+    --blue: #4da6ff;
+    --blue-dim: rgba(77,166,255,0.12);
+    --text: #f0f4ff;
+    --text2: #8899bb;
+    --text3: #4a5a7a;
+    --mono: 'Space Mono', monospace;
+    --sans: 'Sora', sans-serif;
+    --radius: 12px;
+    --radius-sm: 8px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  html { background: var(--bg); }
+  body {
+    font-family: var(--sans);
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    padding-bottom: 90px;
+  }
+
+  /* ── Header ── */
+  header {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    background: rgba(10,14,26,0.92);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--border);
+    padding: 14px 18px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .logo { font-family: var(--mono); font-size: 17px; font-weight: 700; color: var(--green); letter-spacing: -0.5px; }
+  .logo span { color: var(--text2); font-weight: 400; }
+  .live-badge {
+    display: flex; align-items: center; gap: 6px;
+    font-size: 10px; font-family: var(--mono);
+    color: var(--green); letter-spacing: 0.08em;
+    background: var(--green-dim);
+    padding: 4px 10px; border-radius: 20px;
+    border: 1px solid rgba(0,229,160,0.2);
+  }
+  .live-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--green); animation: blink 1.8s infinite; }
+  @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.2} }
+
+  /* ── Budget bar ── */
+  .budget-bar {
+    margin: 16px 16px 0;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 14px 16px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+  }
+  .budget-item { text-align: center; }
+  .budget-label { font-size: 10px; color: var(--text3); font-family: var(--mono); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 4px; }
+  .budget-val { font-size: 18px; font-weight: 700; color: var(--text); font-family: var(--mono); }
+  .budget-val.green { color: var(--green); }
+  .budget-val.amber { color: var(--amber); }
+  .divider-v { width: 1px; height: 36px; background: var(--border); }
+
+  /* ── Tabs ── */
+  .tabs {
+    display: flex;
+    gap: 6px;
+    padding: 14px 16px 0;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .tabs::-webkit-scrollbar { display: none; }
+  .tab {
+    flex-shrink: 0;
+    font-size: 12px;
+    font-family: var(--mono);
+    padding: 7px 16px;
+    border-radius: 20px;
+    border: 1px solid var(--border2);
+    background: transparent;
+    color: var(--text2);
+    cursor: pointer;
+    transition: all 0.2s;
+    letter-spacing: 0.02em;
+  }
+  .tab.active { background: var(--green); color: #0a0e1a; border-color: var(--green); font-weight: 700; }
+
+  /* ── Content ── */
+  .content { padding: 14px 16px; }
+
+  /* ── Filter chips ── */
+  .chips { display: flex; gap: 6px; margin-bottom: 14px; overflow-x: auto; scrollbar-width: none; }
+  .chips::-webkit-scrollbar { display: none; }
+  .chip {
+    flex-shrink: 0;
+    font-size: 11px; font-family: var(--mono);
+    padding: 5px 12px; border-radius: 20px;
+    border: 1px solid var(--border2);
+    background: transparent; color: var(--text3);
+    cursor: pointer; transition: all 0.15s;
+  }
+  .chip.active { border-color: var(--green); color: var(--green); background: var(--green-dim); }
+
+  /* ── Refresh row ── */
+  .refresh-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+  .updated { font-size: 10px; color: var(--text3); font-family: var(--mono); }
+  .refresh-btn {
+    font-size: 11px; font-family: var(--mono);
+    padding: 5px 12px; border-radius: 20px;
+    border: 1px solid var(--border2);
+    background: transparent; color: var(--text2);
+    cursor: pointer; transition: all 0.15s;
+  }
+  .refresh-btn:active { background: var(--surface2); }
+
+  /* ── Stock cards ── */
+  .stock-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    margin-bottom: 10px;
+    overflow: hidden;
+    transition: border-color 0.2s;
+  }
+  .stock-card.expanded { border-color: var(--green); }
+  .stock-card-top {
+    padding: 14px 16px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    cursor: pointer;
+  }
+  .ticker-icon {
+    width: 42px; height: 42px;
+    border-radius: 10px;
+    background: var(--surface2);
+    border: 1px solid var(--border2);
+    display: flex; align-items: center; justify-content: center;
+    font-family: var(--mono); font-size: 10px; font-weight: 700;
+    color: var(--green); flex-shrink: 0;
+    letter-spacing: -0.5px;
+  }
+  .stock-info { flex: 1; min-width: 0; }
+  .stock-ticker { font-family: var(--mono); font-size: 14px; font-weight: 700; color: var(--text); }
+  .stock-name-sub { font-size: 11px; color: var(--text2); margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .stock-price-col { text-align: right; flex-shrink: 0; }
+  .stock-price { font-family: var(--mono); font-size: 15px; font-weight: 700; color: var(--text); }
+  .stock-chg { font-family: var(--mono); font-size: 11px; margin-top: 3px; }
+  .stock-chg.pos { color: var(--green); }
+  .stock-chg.neg { color: var(--red); }
+
+  /* ── Signal pills ── */
+  .signals { display: flex; gap: 5px; flex-wrap: wrap; padding: 0 16px 12px; }
+  .sig {
+    font-size: 10px; font-family: var(--mono);
+    padding: 3px 9px; border-radius: 20px; font-weight: 700;
+    letter-spacing: 0.02em;
+  }
+  .sig.buy { background: var(--green-dim); color: var(--green); border: 1px solid rgba(0,229,160,0.2); }
+  .sig.hold { background: var(--amber-dim); color: var(--amber); border: 1px solid rgba(255,190,11,0.2); }
+  .sig.info { background: var(--blue-dim); color: var(--blue); border: 1px solid rgba(77,166,255,0.2); }
+  .sig.neutral { background: var(--surface2); color: var(--text2); border: 1px solid var(--border2); }
+
+  /* ── Expanded section ── */
+  .expand-body {
+    border-top: 1px solid var(--border);
+    padding: 14px 16px;
+    display: none;
+  }
+  .stock-card.expanded .expand-body { display: block; }
+
+  .timing-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 12px; }
+  .timing-cell {
+    background: var(--surface2);
+    border-radius: var(--radius-sm);
+    padding: 10px 12px;
+    border: 1px solid var(--border);
+  }
+  .timing-cell-label { font-size: 10px; color: var(--text3); font-family: var(--mono); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 5px; }
+  .timing-cell-val { font-size: 12px; font-weight: 600; line-height: 1.4; }
+  .timing-cell-val.buy { color: var(--green); }
+  .timing-cell-val.sell { color: var(--red); }
+
+  .score-bar { margin-bottom: 12px; }
+  .score-bar-label { font-size: 10px; color: var(--text3); font-family: var(--mono); margin-bottom: 5px; display: flex; justify-content: space-between; }
+  .score-bar-track { height: 4px; background: var(--surface2); border-radius: 2px; overflow: hidden; }
+  .score-bar-fill { height: 100%; border-radius: 2px; background: var(--green); transition: width 1s ease; }
+
+  .ai-panel {
+    background: var(--surface2);
+    border: 1px solid var(--border2);
+    border-radius: var(--radius-sm);
+    padding: 12px 14px;
+    margin-bottom: 10px;
+  }
+  .ai-panel-label { font-size: 10px; color: var(--text3); font-family: var(--mono); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 8px; display: flex; align-items: center; gap: 5px; }
+  .ai-panel-label::before { content: '◆'; font-size: 8px; color: var(--green); }
+  .ai-panel p { font-size: 13px; color: var(--text2); line-height: 1.65; }
+  .ai-panel p.loading { color: var(--text3); font-style: italic; }
+
+  .analyze-btn {
+    width: 100%;
+    padding: 11px;
+    background: var(--green-dim);
+    border: 1px solid rgba(0,229,160,0.3);
+    border-radius: var(--radius-sm);
+    color: var(--green);
+    font-family: var(--mono);
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+    letter-spacing: 0.04em;
+    transition: all 0.2s;
+  }
+  .analyze-btn:active { background: var(--green-mid); }
+  .analyze-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+  /* ── Info sections ── */
+  .info-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px;
+    margin-bottom: 10px;
+  }
+  .info-card-title {
+    font-family: var(--mono); font-size: 11px; font-weight: 700;
+    color: var(--green); letter-spacing: 0.08em; text-transform: uppercase;
+    margin-bottom: 10px; display: flex; align-items: center; gap: 6px;
+  }
+  .info-card-title::before { content: '▸'; font-size: 10px; }
+  .info-card p { font-size: 13px; color: var(--text2); line-height: 1.7; }
+
+  .growth-row { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+  .growth-label { font-family: var(--mono); font-size: 11px; color: var(--text3); width: 70px; flex-shrink: 0; }
+  .growth-track { flex: 1; height: 5px; background: var(--surface2); border-radius: 3px; overflow: hidden; }
+  .growth-fill { height: 100%; border-radius: 3px; }
+  .growth-val { font-family: var(--mono); font-size: 11px; color: var(--text); width: 46px; text-align: right; flex-shrink: 0; }
+
+  /* ── Bottom nav ── */
+  .bottom-nav {
+    position: fixed;
+    bottom: 0; left: 0; right: 0;
+    background: rgba(10,14,26,0.96);
+    backdrop-filter: blur(12px);
+    border-top: 1px solid var(--border);
+    display: flex;
+    z-index: 100;
+  }
+  .nav-item {
+    flex: 1;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    padding: 10px 0 14px;
+    font-family: var(--mono); font-size: 9px; color: var(--text3);
+    cursor: pointer; transition: color 0.15s;
+    background: none; border: none;
+    letter-spacing: 0.04em;
+    gap: 4px;
+  }
+  .nav-item.active { color: var(--green); }
+  .nav-icon { font-size: 18px; line-height: 1; }
+
+  /* ── Disclaimer ── */
+  .disclaimer {
+    background: rgba(255,190,11,0.06);
+    border: 1px solid rgba(255,190,11,0.15);
+    border-radius: var(--radius-sm);
+    padding: 11px 14px;
+    margin-bottom: 14px;
+  }
+  .disclaimer p { font-size: 11px; color: var(--amber); line-height: 1.6; }
+
+  /* ── Animate in ── */
+  .stock-card { animation: fadein 0.3s ease both; }
+  @keyframes fadein { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">Stock<span>IQ</span></div>
+  <div class="live-badge"><span class="live-dot"></span>AI LIVE</div>
+</header>
+
+<div class="budget-bar">
+  <div class="budget-item">
+    <div class="budget-label">Capital</div>
+    <div class="budget-val green" id="capital-val">$585</div>
+  </div>
+  <div class="divider-v"></div>
+  <div class="budget-item">
+    <div class="budget-label">Picks</div>
+    <div class="budget-val" id="picks-val">6</div>
+  </div>
+  <div class="divider-v"></div>
+  <div class="budget-item">
+    <div class="budget-label">Avg Score</div>
+    <div class="budget-val amber">8.4</div>
+  </div>
+  <div class="divider-v"></div>
+  <div class="budget-item">
+    <div class="budget-label">Market</div>
+    <div class="budget-val green" id="market-status">OPEN</div>
+  </div>
+</div>
+
+<div class="tabs" id="tabs">
+  <button class="tab active" onclick="switchTab('picks',this)">Top Picks</button>
+  <button class="tab" onclick="switchTab('timing',this)">Buy/Sell Timing</button>
+  <button class="tab" onclick="switchTab('strategy',this)">Strategy</button>
+  <button class="tab" onclick="switchTab('settings',this)">Settings</button>
+</div>
+
+<!-- ══════════ PICKS TAB ══════════ -->
+<div class="content" id="tab-picks">
+  <div class="disclaimer">
+    <p>⚠ Not financial advice. AI analysis is for educational purposes only. Always do your own research before investing.</p>
+  </div>
+  <div class="chips">
+    <button class="chip active" onclick="filter('all',this)">All</button>
+    <button class="chip" onclick="filter('strong_buy',this)">Strong Buy</button>
+    <button class="chip" onclick="filter('growth',this)">Growth</button>
+    <button class="chip" onclick="filter('value',this)">Value</button>
+    <button class="chip" onclick="filter('dividend',this)">Dividend</button>
+  </div>
+  <div class="refresh-row">
+    <span class="updated" id="updated-time">Updated just now</span>
+    <button class="refresh-btn" onclick="refreshPage()">↻ Refresh</button>
+  </div>
+  <div id="stocks-container"></div>
+</div>
+
+<!-- ══════════ TIMING TAB ══════════ -->
+<div class="content" id="tab-timing" style="display:none">
+  <div class="info-card">
+    <div class="info-card-title">Best times to buy</div>
+    <p>Look for dips of 3–8% on fundamentally strong companies — these are buying opportunities, not warnings. First 30 minutes of market open (9:30–10:00 AM ET) are often volatile; wait for the dust to settle. Pre-earnings dips on companies you expect to beat estimates are high-probability setups.</p>
+  </div>
+  <div class="info-card">
+    <div class="info-card-title">Best times to sell</div>
+    <p>After a 20–25% gain, consider taking partial profits — sell half, let the rest ride. If a stock surges 10–15% right before earnings, trim your position ("sell the news"). Always have a stop-loss set at 7–10% below your entry price to protect your capital.</p>
+  </div>
+  <div class="info-card">
+    <div class="info-card-title">Seasonal patterns</div>
+    <p><strong>Jan–Mar:</strong> Small caps often outperform (January effect). <strong>Apr–Jun:</strong> Tech earnings season — elevated volatility. <strong>Sep–Oct:</strong> Historically the weakest months — be cautious with new entries. <strong>Nov–Dec:</strong> "Santa rally" — historically strong for large caps and growth stocks.</p>
+  </div>
+  <div class="info-card">
+    <div class="info-card-title">With $585 specifically</div>
+    <p>Use fractional shares (available on Robinhood, Fidelity, Schwab) to spread across 2–3 stocks. Use limit orders — never market orders. Keep $100–150 as a cash reserve for dips. Consider dollar-cost averaging: invest $50–100/month as you add income rather than deploying all at once.</p>
+  </div>
+  <div class="info-card">
+    <div class="info-card-title">Market hours (ET)</div>
+    <p>Pre-market: 4:00–9:30 AM. Regular session: 9:30 AM–4:00 PM. After-hours: 4:00–8:00 PM. Best liquidity and tightest spreads during regular session hours, especially 10 AM–3 PM.</p>
+  </div>
+</div>
+
+<!-- ══════════ STRATEGY TAB ══════════ -->
+<div class="content" id="tab-strategy" style="display:none">
+  <div class="info-card">
+    <div class="info-card-title">Realistic growth from $585</div>
+    <div style="margin-top: 4px;">
+      <div class="growth-row"><span class="growth-label">Yr 1 (25%)</span><div class="growth-track"><div class="growth-fill" style="width:1.4%;background:var(--green);"></div></div><span class="growth-val">$731</span></div>
+      <div class="growth-row"><span class="growth-label">Yr 3 (25%)</span><div class="growth-track"><div class="growth-fill" style="width:2.2%;background:var(--green);"></div></div><span class="growth-val">$1,142</span></div>
+      <div class="growth-row"><span class="growth-label">Yr 5 (25%)</span><div class="growth-track"><div class="growth-fill" style="width:3.5%;background:var(--green);"></div></div><span class="growth-val">$1,785</span></div>
+      <div class="growth-row"><span class="growth-label">Yr 10 (25%)</span><div class="growth-track"><div class="growth-fill" style="width:10.9%;background:var(--blue);"></div></div><span class="growth-val">$5,472</span></div>
+      <div class="growth-row"><span class="growth-label">Yr 20 (25%)</span><div class="growth-track"><div class="growth-fill" style="width:100%;background:var(--amber);"></div></div><span class="growth-val">$51k+</span></div>
+    </div>
+    <p style="margin-top:12px;font-size:12px;color:var(--text3);">To reach 6 figures, reinvest gains AND add $300–500/month. That combination gets you there in 8–12 years.</p>
+  </div>
+  <div class="info-card">
+    <div class="info-card-title">Top investor principles</div>
+    <p><strong style="color:var(--green)">Buffett:</strong> Buy great companies at fair prices and hold for decades.<br><br><strong style="color:var(--blue)">Lynch:</strong> Invest in what you understand — if you don't understand the business, skip it.<br><br><strong style="color:var(--amber)">Dalio:</strong> Diversify across uncorrelated assets; no single bet should break you.<br><br><strong style="color:var(--red)">Universal:</strong> Never invest money you cannot afford to lose.</p>
+  </div>
+  <div class="info-card">
+    <div class="info-card-title">Your action plan</div>
+    <p>1. Open a brokerage with fractional shares (Fidelity or Schwab — both free).<br><br>2. Invest $150–200 in your top 2–3 picks from this dashboard.<br><br>3. Keep $150+ in cash as a dip reserve.<br><br>4. Set a 7% stop-loss on every position.<br><br>5. Reinvest any profits. Do not withdraw.<br><br>6. Add money every month, however little.</p>
+  </div>
+</div>
+
+<!-- ══════════ SETTINGS TAB ══════════ -->
+<div class="content" id="tab-settings" style="display:none">
+  <div class="info-card">
+    <div class="info-card-title">Your capital</div>
+    <div style="display:flex;gap:10px;align-items:center;margin-top:4px;">
+      <input type="number" id="capital-input" placeholder="585" value="585"
+        style="flex:1;padding:10px 14px;background:var(--surface2);border:1px solid var(--border2);border-radius:var(--radius-sm);color:var(--text);font-family:var(--mono);font-size:14px;outline:none;" />
+      <button onclick="saveCapital()" style="padding:10px 18px;background:var(--green-dim);border:1px solid rgba(0,229,160,0.3);border-radius:var(--radius-sm);color:var(--green);font-family:var(--mono);font-size:12px;font-weight:700;cursor:pointer;">Save</button>
+    </div>
+  </div>
+  <div class="info-card">
+    <div class="info-card-title">API status</div>
+    <p id="api-status-msg" style="font-size:13px;color:var(--text2);">Checking connection...</p>
+  </div>
+  <div class="info-card">
+    <div class="info-card-title">About StockIQ</div>
+    <p>StockIQ uses Claude AI (Anthropic) for real-time stock analysis. Data signals are curated from publicly available analyst consensus data. This app is for educational purposes only — not financial advice. Always consult a licensed financial advisor before investing.</p>
+  </div>
+  <div class="info-card">
+    <div class="info-card-title">Recommended brokerages (free)</div>
+    <p>• <strong style="color:var(--text)">Fidelity</strong> — Fractional shares, no fees, best for beginners<br>• <strong style="color:var(--text)">Charles Schwab</strong> — Fractional shares, great research tools<br>• <strong style="color:var(--text)">Robinhood</strong> — Easy mobile app, fractional shares<br>• <strong style="color:var(--text)">Webull</strong> — Good charting tools, commission-free</p>
+  </div>
+</div>
+
+<!-- ══════════ BOTTOM NAV ══════════ -->
+<nav class="bottom-nav">
+  <button class="nav-item active" id="nav-picks" onclick="switchTab('picks',null,'nav-picks')">
+    <span class="nav-icon">📈</span>PICKS
+  </button>
+  <button class="nav-item" id="nav-timing" onclick="switchTab('timing',null,'nav-timing')">
+    <span class="nav-icon">⏱</span>TIMING
+  </button>
+  <button class="nav-item" id="nav-strategy" onclick="switchTab('strategy',null,'nav-strategy')">
+    <span class="nav-icon">🎯</span>STRATEGY
+  </button>
+  <button class="nav-item" id="nav-settings" onclick="switchTab('settings',null,'nav-settings')">
+    <span class="nav-icon">⚙️</span>SETTINGS
+  </button>
+</nav>
+
+<script>
+const STOCKS = [
+  {
+    ticker:'NVDA', name:'Nvidia Corporation', desc:'AI chips & data center GPUs',
+    price:875.40, chg:2.3, score:9.1,
+    tags:['strong_buy','growth'],
+    signals:[{t:'STRONG BUY',c:'buy'},{t:'AI LEADER',c:'info'},{t:'9.1/10',c:'neutral'}],
+    timing:{buy:'Dips to $830–850 (near 50-day MA)',sell:'$960–980 resistance zone'},
+    catalysts:'Blackwell GPU demand, data center buildout, AI inference growth',
+    risk:'Valuation stretched; China export restrictions could hurt revenue',
+    target:'$1,050 (12-month analyst consensus)',
+    weight:92
+  },
+  {
+    ticker:'MSFT', name:'Microsoft Corporation', desc:'Cloud computing & AI software',
+    price:415.20, chg:0.8, score:9.4,
+    tags:['strong_buy','growth','value'],
+    signals:[{t:'STRONG BUY',c:'buy'},{t:'CLOUD MOAT',c:'info'},{t:'9.4/10',c:'neutral'}],
+    timing:{buy:'Pullbacks to $395–402',sell:'$450–460 near-term target'},
+    catalysts:'Azure cloud growth accelerating, Copilot AI monetization, Office365 expansion',
+    risk:'Regulatory scrutiny of AI deals; slowing consumer PC market',
+    target:'$470 (12-month analyst consensus)',
+    weight:94
+  },
+  {
+    ticker:'AMZN', name:'Amazon.com Inc', desc:'E-commerce giant & AWS cloud',
+    price:188.50, chg:1.4, score:9.0,
+    tags:['strong_buy','growth'],
+    signals:[{t:'STRONG BUY',c:'buy'},{t:'AWS GROWTH',c:'info'},{t:'9.0/10',c:'neutral'}],
+    timing:{buy:'Pullbacks to $178–183',sell:'$200–205 near-term target'},
+    catalysts:'AWS re-accelerating, advertising revenue growing 20%+, logistics efficiency gains',
+    risk:'Consumer spending slowdown; high capex on AI infrastructure',
+    target:'$225 (12-month analyst consensus)',
+    weight:90
+  },
+  {
+    ticker:'META', name:'Meta Platforms Inc', desc:'Social media & AI advertising',
+    price:502.10, chg:1.9, score:8.9,
+    tags:['strong_buy','growth'],
+    signals:[{t:'STRONG BUY',c:'buy'},{t:'AI ADS',c:'info'},{t:'8.9/10',c:'neutral'}],
+    timing:{buy:'Dips to $475–482',sell:'$545–560 analyst target'},
+    catalysts:'AI-powered ad targeting driving revenue, Llama open-source moat, Instagram/Reels growth',
+    risk:'Regulatory risk in EU; heavy AI/metaverse capex spend',
+    target:'$580 (12-month analyst consensus)',
+    weight:89
+  },
+  {
+    ticker:'AAPL', name:'Apple Inc', desc:'Consumer tech & growing services',
+    price:189.30, chg:-0.4, score:7.8,
+    tags:['hold','value','dividend'],
+    signals:[{t:'HOLD',c:'hold'},{t:'SERVICES',c:'info'},{t:'7.8/10',c:'neutral'}],
+    timing:{buy:'Pullbacks to $173–178',sell:'$200 — prior all-time high'},
+    catalysts:'Services segment growing 15%+, Apple Intelligence AI features, emerging market expansion',
+    risk:'iPhone upgrade cycle slowing; China sales pressure; premium valuation',
+    target:'$210 (12-month analyst consensus)',
+    weight:78
+  },
+  {
+    ticker:'KO', name:'Coca-Cola Company', desc:'Defensive dividend stalwart',
+    price:62.80, chg:0.2, score:7.2,
+    tags:['value','dividend'],
+    signals:[{t:'BUY',c:'buy'},{t:'3.1% DIV',c:'info'},{t:'7.2/10',c:'neutral'}],
+    timing:{buy:'Near $60–62 support level',sell:'$68–70 historical ceiling'},
+    catalysts:'Pricing power, global emerging market growth, dividend reliability for 60+ years',
+    risk:'Rising input costs; consumer shift away from sugary drinks; slow growth',
+    target:'$70 (12-month analyst consensus)',
+    weight:72
+  }
+];
+
+let activeFilter = 'all';
+let expandedTicker = null;
+let aiCache = {};
+let capital = parseFloat(localStorage.getItem('capital') || '585');
+
+function saveCapital() {
+  const val = parseFloat(document.getElementById('capital-input').value);
+  if (!isNaN(val) && val > 0) {
+    capital = val;
+    localStorage.setItem('capital', val);
+    document.getElementById('capital-val').textContent = '$' + val.toLocaleString();
+    alert('Capital updated!');
+  }
+}
+
+function renderStocks() {
+  const container = document.getElementById('stocks-container');
+  const list = activeFilter === 'all' ? STOCKS : STOCKS.filter(s => s.tags.includes(activeFilter));
+  document.getElementById('picks-val').textContent = list.length;
+  container.innerHTML = '';
+  list.forEach((s, i) => {
+    const pos = s.chg >= 0;
+    const isExp = expandedTicker === s.ticker;
+    const div = document.createElement('div');
+    div.className = 'stock-card' + (isExp ? ' expanded' : '');
+    div.style.animationDelay = (i * 0.04) + 's';
+    div.innerHTML = `
+      <div class="stock-card-top" onclick="toggleCard('${s.ticker}')">
+        <div class="ticker-icon">${s.ticker.substring(0,4)}</div>
+        <div class="stock-info">
+          <div class="stock-ticker">${s.ticker}</div>
+          <div class="stock-name-sub">${s.name}</div>
+        </div>
+        <div class="stock-price-col">
+          <div class="stock-price">$${s.price.toFixed(2)}</div>
+          <div class="stock-chg ${pos?'pos':'neg'}">${pos?'+':''}${s.chg.toFixed(1)}%</div>
+        </div>
+      </div>
+      <div class="signals">
+        ${s.signals.map(sig => `<span class="sig ${sig.c}">${sig.t}</span>`).join('')}
+      </div>
+      <div class="expand-body">
+        <div class="timing-grid">
+          <div class="timing-cell">
+            <div class="timing-cell-label">Buy zone</div>
+            <div class="timing-cell-val buy">${s.timing.buy}</div>
+          </div>
+          <div class="timing-cell">
+            <div class="timing-cell-label">Profit target</div>
+            <div class="timing-cell-val sell">${s.timing.sell}</div>
+          </div>
+        </div>
+        <div class="score-bar">
+          <div class="score-bar-label"><span>Analyst conviction</span><span>${s.score}/10</span></div>
+          <div class="score-bar-track"><div class="score-bar-fill" style="width:${s.weight}%"></div></div>
+        </div>
+        <div class="score-bar">
+          <div class="score-bar-label"><span>Key catalyst</span><span></span></div>
+        </div>
+        <p style="font-size:12px;color:var(--text2);margin-bottom:8px;line-height:1.6;">${s.catalysts}</p>
+        <p style="font-size:11px;color:var(--text3);margin-bottom:12px;line-height:1.6);">⚠ Risk: ${s.risk}</p>
+        <p style="font-size:11px;color:var(--blue);margin-bottom:12px;font-family:var(--mono);">Target: ${s.target}</p>
+        <div class="ai-panel" id="ai-box-${s.ticker}">
+          <div class="ai-panel-label">AI Deep Analysis</div>
+          <p class="loading">Tap the button below for live AI analysis</p>
+        </div>
+        <button class="analyze-btn" id="btn-${s.ticker}" onclick="getAnalysis('${s.ticker}')">
+          ◆ GET AI ANALYSIS FOR ${s.ticker}
+        </button>
+      </div>`;
+    container.appendChild(div);
+    if (isExp && aiCache[s.ticker]) {
+      const p = document.querySelector(`#ai-box-${s.ticker} p`);
+      if (p) { p.className = ''; p.textContent = aiCache[s.ticker]; }
+    }
+  });
+  document.getElementById('updated-time').textContent = 'Updated ' + new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'});
+}
+
+function toggleCard(ticker) {
+  expandedTicker = expandedTicker === ticker ? null : ticker;
+  renderStocks();
+}
+
+function filter(f, btn) {
+  activeFilter = f;
+  expandedTicker = null;
+  document.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
+  btn.classList.add('active');
+  renderStocks();
+}
+
+async function getAnalysis(ticker) {
+  if (aiCache[ticker]) {
+    const p = document.querySelector(`#ai-box-${ticker} p`);
+    if (p) { p.className = ''; p.textContent = aiCache[ticker]; }
+    return;
+  }
+  const btn = document.getElementById('btn-' + ticker);
+  const p = document.querySelector(`#ai-box-${ticker} p`);
+  if (!btn || !p) return;
+  btn.disabled = true;
+  btn.textContent = '◆ ANALYZING...';
+  p.className = 'loading';
+  p.textContent = 'Fetching live AI analysis...';
+  const stock = STOCKS.find(s => s.ticker === ticker);
+  try {
+    const res = await fetch('/.netlify/functions/analyze', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ticker, name: stock.name, price: stock.price, catalysts: stock.catalysts, risk: stock.risk, target: stock.target, capital })
+    });
+    const data = await res.json();
+    const text = data.analysis || 'Analysis unavailable.';
+    aiCache[ticker] = text;
+    p.className = '';
+    p.textContent = text;
+    btn.textContent = '◆ ANALYSIS COMPLETE';
+  } catch(e) {
+    p.className = '';
+    p.textContent = 'Could not connect to AI service. Check your internet connection and try again.';
+    btn.disabled = false;
+    btn.textContent = `◆ RETRY ANALYSIS FOR ${ticker}`;
+  }
+}
+
+function switchTab(tab, tabBtn, navId) {
+  ['picks','timing','strategy','settings'].forEach(t => {
+    document.getElementById('tab-' + t).style.display = t === tab ? 'block' : 'none';
+  });
+  if (tabBtn) {
+    document.querySelectorAll('.tab').forEach(b => b.classList.remove('active'));
+    tabBtn.classList.add('active');
+  }
+  if (navId) {
+    document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active'));
+    document.getElementById(navId).classList.add('active');
+    const tabMap = {picks:'tab-0',timing:'tab-1',strategy:'tab-2',settings:'tab-3'};
+    document.querySelectorAll('.tab').forEach((b,i) => b.classList.toggle('active', i === ['picks','timing','strategy','settings'].indexOf(tab)));
+  }
+}
+
+function refreshPage() {
+  aiCache = {};
+  renderStocks();
+}
+
+function checkMarketStatus() {
+  const now = new Date();
+  const et = new Date(now.toLocaleString('en-US', {timeZone:'America/New_York'}));
+  const day = et.getDay();
+  const h = et.getHours();
+  const m = et.getMinutes();
+  const mins = h * 60 + m;
+  const isWeekday = day >= 1 && day <= 5;
+  const isOpen = isWeekday && mins >= 570 && mins < 960;
+  const el = document.getElementById('market-status');
+  el.textContent = isOpen ? 'OPEN' : 'CLOSED';
+  el.style.color = isOpen ? 'var(--green)' : 'var(--red)';
+}
+
+async function checkApi() {
+  const el = document.getElementById('api-status-msg');
+  try {
+    const res = await fetch('/.netlify/functions/analyze', {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ping:true})
+    });
+    if (res.ok) { el.textContent = '✓ AI service connected and ready.'; el.style.color='var(--green)'; }
+    else { el.textContent = '⚠ AI service error. Check Netlify function logs.'; el.style.color='var(--amber)'; }
+  } catch(e) {
+    el.textContent = '✗ Cannot reach AI service. Make sure the Netlify function is deployed.';
+    el.style.color = 'var(--red)';
+  }
+}
+
+document.getElementById('capital-val').textContent = '$' + capital.toLocaleString();
+document.getElementById('capital-input').value = capital;
+checkMarketStatus();
+setInterval(checkMarketStatus, 60000);
+checkApi();
+renderStocks();
+</script>
+</body>
+</html>
